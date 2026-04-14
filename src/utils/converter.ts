@@ -130,39 +130,73 @@ function formatAttendees(note: GranolaNote): string | null {
 }
 
 function textToBlocks(text: string): BlockObjectRequest[] {
-  const lines = text.split("\n").filter((l) => l.trim());
+  const lines = text.split("\n");
   if (lines.length === 0) return [];
 
   const blocks: BlockObjectRequest[] = [];
+  // Stack tracks ancestor list items so children can be nested under them.
+  // Each entry: { block (the Notion block object), indent (char count of leading whitespace) }
+  const listStack: { block: any; indent: number }[] = [];
 
   for (const line of lines) {
+    if (!line.trim()) continue;
+
     const trimmed = line.trim();
 
-    if (trimmed.startsWith("- ") || trimmed.startsWith("• ") || trimmed.startsWith("* ")) {
-      blocks.push({
-        type: "bulleted_list_item",
-        bulleted_list_item: { rich_text: chunkText(trimmed.slice(2)) },
-      } as BlockObjectRequest);
-    } else if (trimmed.startsWith("### ")) {
-      blocks.push({
-        type: "heading_3",
-        heading_3: { rich_text: chunkText(trimmed.slice(4)) },
-      } as BlockObjectRequest);
-    } else if (trimmed.startsWith("## ")) {
-      blocks.push({
-        type: "heading_2",
-        heading_2: { rich_text: chunkText(trimmed.slice(3)) },
-      } as BlockObjectRequest);
-    } else if (trimmed.startsWith("# ")) {
-      blocks.push({
-        type: "heading_1",
-        heading_1: { rich_text: chunkText(trimmed.slice(2)) },
-      } as BlockObjectRequest);
+    // Detect bulleted list items and preserve their indentation level
+    const listMatch = line.match(/^(\s*)([-•*])\s+(.*)/);
+
+    if (listMatch) {
+      const indent = listMatch[1].length;
+      const content = listMatch[3];
+
+      const block = {
+        type: "bulleted_list_item" as const,
+        bulleted_list_item: { rich_text: chunkText(content) } as any,
+      };
+
+      // Pop stack entries at the same or deeper indent — they can't be parents
+      while (listStack.length > 0 && listStack[listStack.length - 1].indent >= indent) {
+        listStack.pop();
+      }
+
+      if (listStack.length > 0) {
+        // Nest as a child of the closest shallower item
+        const parent = listStack[listStack.length - 1].block;
+        if (!parent.bulleted_list_item.children) {
+          parent.bulleted_list_item.children = [];
+        }
+        parent.bulleted_list_item.children.push(block);
+      } else {
+        blocks.push(block as BlockObjectRequest);
+      }
+
+      listStack.push({ block, indent });
     } else {
-      blocks.push({
-        type: "paragraph",
-        paragraph: { rich_text: chunkText(trimmed) },
-      } as BlockObjectRequest);
+      // Non-list line resets nesting context
+      listStack.length = 0;
+
+      if (trimmed.startsWith("### ")) {
+        blocks.push({
+          type: "heading_3",
+          heading_3: { rich_text: chunkText(trimmed.slice(4)) },
+        } as BlockObjectRequest);
+      } else if (trimmed.startsWith("## ")) {
+        blocks.push({
+          type: "heading_2",
+          heading_2: { rich_text: chunkText(trimmed.slice(3)) },
+        } as BlockObjectRequest);
+      } else if (trimmed.startsWith("# ")) {
+        blocks.push({
+          type: "heading_1",
+          heading_1: { rich_text: chunkText(trimmed.slice(2)) },
+        } as BlockObjectRequest);
+      } else {
+        blocks.push({
+          type: "paragraph",
+          paragraph: { rich_text: chunkText(trimmed) },
+        } as BlockObjectRequest);
+      }
     }
   }
 

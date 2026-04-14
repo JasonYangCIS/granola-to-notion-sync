@@ -162,6 +162,35 @@ export async function archivePage(
   );
 }
 
+export async function listChildPages(
+  client: Client,
+  pageId: string
+): Promise<{ title: string; id: string }[]> {
+  const pages: { title: string; id: string }[] = [];
+  let cursor: string | undefined;
+
+  while (true) {
+    const response = await withRetry(() =>
+      client.blocks.children.list({
+        block_id: pageId,
+        start_cursor: cursor,
+        page_size: 100,
+      })
+    );
+
+    for (const block of response.results) {
+      if ("type" in block && block.type === "child_page") {
+        pages.push({ title: block.child_page.title, id: block.id });
+      }
+    }
+
+    if (!response.has_more) break;
+    cursor = response.next_cursor ?? undefined;
+  }
+
+  return pages;
+}
+
 export async function verifyPageAccess(
   client: Client,
   pageId: string

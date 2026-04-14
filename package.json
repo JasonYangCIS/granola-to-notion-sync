@@ -12,6 +12,7 @@
     "build": "tsc",
     "sync": "tsx src/cli.ts sync",
     "reset": "rm -f .sync-state.json && echo 'Sync state reset.'",
+    "clear-cache": "rm -rf cached && echo 'Cache cleared.'",
     "start": "tsx src/cli.ts"
   },
   "dependencies": {

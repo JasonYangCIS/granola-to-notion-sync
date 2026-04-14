@@ -63,6 +63,9 @@ npm run sync
 
 # Reset sync state (next sync will re-create all pages)
 npm run reset
+
+# Clear cached Granola API responses (forces re-fetch)
+npm run clear-cache
 ```
 
 > **Note:** Resetting does not delete existing pages in Notion. If you run `npm run sync` after a reset, you'll get duplicate pages unless you manually remove the old ones from Notion first.
@@ -95,9 +98,11 @@ src/
 ## How sync works
 
 1. Fetches all notes from the Granola API with full details (summary, attendees, calendar event)
+   - Note details are cached locally in `cached/` — unchanged notes are loaded from disk instead of hitting the API again
 2. Loads local `.sync-state.json` to determine which notes are new
-3. Creates Notion folder pages for any new folders
-4. Creates a Notion page per new note under its corresponding folder
-5. Saves sync state after each note (safe to interrupt and resume)
+3. Reconciles with existing Notion pages to avoid duplicates after a reset
+4. Creates nested Notion folder pages mirroring your Granola folder hierarchy
+5. Creates a Notion page per new note under its corresponding folder
+6. Saves sync state after each note (safe to interrupt and resume)
 
 Re-running `npm run sync` only picks up new notes. Previously synced notes are never modified or overwritten.

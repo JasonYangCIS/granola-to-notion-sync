@@ -35,6 +35,7 @@ export interface GranolaNotesListResponse {
 export interface GranolaFolder {
   id: string;
   name: string;
+  parentId: string | null; // inferred from folder_membership arrays
 }
 
 export interface GranolaData {

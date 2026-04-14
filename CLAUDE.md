@@ -10,6 +10,7 @@ CLI tool that syncs Granola.ai meeting notes to Notion. Built with TypeScript, r
 npm run sync              # Sync new notes to Notion
 npm run sync -- --dry-run # Preview without changes
 npm run reset             # Clear sync state (.sync-state.json)
+npm run clear-cache       # Clear cached Granola API responses (cached/)
 npx tsc --noEmit          # Type-check
 ```
 
@@ -40,7 +41,7 @@ Sync flow: Fetch notes from Granola API → load local sync state → diff → c
 | `calendar_event.scheduled_start_time` | Meeting start (NOT `start.dateTime`) |
 | `calendar_event.scheduled_end_time` | Meeting end |
 | `attendees` | Array of `{ name, email }` |
-| `folder_membership` | Array of `{ id, name }` — flat, no hierarchy |
+| `folder_membership` | Array of `{ id, name }` ordered leaf → root (e.g. `[IHG, Clients]`) |
 | `transcript[].speaker.source` | "microphone" or "speaker" (NOT speaker name) |
 
 Note IDs from the API use `not_xxx` format, not UUIDs. Folder IDs use `fol_xxx` format.
@@ -51,7 +52,8 @@ Note IDs from the API use `not_xxx` format, not UUIDs. Folder IDs use `fol_xxx` 
 - **Pages, not databases**: Meeting notes are created as child pages under folder pages (not Notion database entries). Page titles use `M/D/YYYY - Title` format.
 - **No transcripts**: Only AI summaries are synced. Transcripts were removed to keep pages clean.
 - **Sync state per-document**: `.sync-state.json` is saved after each note for crash safety. Uses Granola note ID as the key.
-- **Folder structure from API**: The `folder_membership` field on each note provides folder assignment. Folders are flat in Notion (API doesn't expose parent/child hierarchy).
+- **Folder hierarchy via majority voting**: The `folder_membership` field on each note provides an ordered array (leaf → root). Different notes can disagree on ordering, so parent relationships are resolved by majority vote to avoid cycles.
+- **Note detail caching**: API responses for individual notes are cached in `cached/{noteId}.json`. Freshness is checked via `updated_at` — stale entries are re-fetched automatically. Cache is independent of sync state (`npm run reset` does not clear it).
 - **Only user's own notes**: The Granola Personal API only returns notes the user owns or that were shared with them directly.
 
 ## Notion API
