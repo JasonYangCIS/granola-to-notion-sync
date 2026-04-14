@@ -1,0 +1,12 @@
+{
+  "name": "granola-to-notion",
+  "version": "1.0.0",
+  "description": "Sync meeting notes from Granola to Notion",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
