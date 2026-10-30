@@ -70,7 +70,7 @@ function buildMetadataHeader(note: GranolaNote): BlockObjectRequest[] {
             text: { content: "Attendees: " },
             annotations: { bold: true },
           },
-          { type: "text", text: { content: attendees } },
+          ...chunkText(attendees),
         ],
       },
     } as BlockObjectRequest);
